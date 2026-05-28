@@ -1,5 +1,7 @@
 # 🍳 Our Cookbook
 
+### 📱 Live app: **https://isaac-ciderconsulting.github.io/isaac-testing-recipe-app/**
+
 A simple, beautiful recipe app — built to be easy enough for anyone to use, even if they don't like fiddling with technology.
 
 - 📖 Save your favorite recipes with a photo, ingredients, and steps
@@ -18,14 +20,13 @@ No accounts, no passwords, no setup. Your recipes are saved privately on your ow
 
 The app is a single web page. The simplest way to put it on your wife's phone:
 
-### Option A — Put it online for free (recommended)
+### Option A — It's already online for free! (recommended)
 
-1. This project lives in a GitHub repository.
-2. In the repository on GitHub, click **Settings → Pages**.
-3. Under **Branch**, choose `main` and the `/ (root)` folder, then click **Save**.
-4. After a minute, GitHub gives you a public link like:
-   `https://YOUR-USERNAME.github.io/isaac-testing-recipe-app/`
-5. Open that link on her phone. Then:
+The app is already published with GitHub Pages at:
+
+**https://isaac-ciderconsulting.github.io/isaac-testing-recipe-app/**
+
+1. Open that link on her phone. Then:
    - **iPhone (Safari):** tap the Share button → **Add to Home Screen**.
    - **Android (Chrome):** tap the ⋮ menu → **Add to Home screen / Install app**.
 
