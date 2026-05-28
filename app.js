@@ -522,16 +522,57 @@
   /* =================================================================
      SHARING
      ================================================================= */
-  function buildShareURL(r, withPhoto) {
+  // Keep links short enough to survive common messaging apps (WhatsApp,
+  // iMessage, email). The recipe data lives in the URL's #hash, so it is
+  // never sent to a server — this cap is about the sharing channel.
+  const MAX_SHARE_URL = 60000;
+
+  function buildShareURL(r, photoData) {
     const payload = { t: r.title, tm: r.time, sv: r.servings, i: r.ingredients, s: r.steps };
-    if (withPhoto && r.photo) payload.p = r.photo;
+    if (photoData) payload.p = photoData;
     const encoded = b64encode(JSON.stringify(payload));
     return location.origin + location.pathname + "#shared=" + encoded;
   }
 
+  // Re-shrink a stored photo into a small thumbnail for the share link.
+  function makeThumb(dataUrl, maxDim, quality) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onerror = reject;
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          const s = maxDim / Math.max(width, height);
+          width = Math.round(width * s); height = Math.round(height * s);
+        }
+        const c = document.createElement("canvas");
+        c.width = width; c.height = height;
+        c.getContext("2d").drawImage(img, 0, 0, width, height);
+        resolve(c.toDataURL("image/jpeg", quality));
+      };
+      img.src = dataUrl;
+    });
+  }
+
+  // Pick the largest photo thumbnail that still keeps the link under the cap.
+  async function buildBestShareURL(r) {
+    if (!r.photo) return { url: buildShareURL(r, null), withPhoto: false };
+    const tries = [[640, 0.6], [520, 0.52], [420, 0.46], [320, 0.42]];
+    for (const [dim, q] of tries) {
+      try {
+        const thumb = await makeThumb(r.photo, dim, q);
+        const url = buildShareURL(r, thumb);
+        if (url.length <= MAX_SHARE_URL) return { url, withPhoto: true };
+      } catch (e) { break; }
+    }
+    return { url: buildShareURL(r, null), withPhoto: false }; // photo too big to fit
+  }
+
   async function shareRecipe(r) {
-    let url = buildShareURL(r, true);
-    if (url.length > 7000) url = buildShareURL(r, false);
+    let res;
+    try { res = await buildBestShareURL(r); }
+    catch (e) { res = { url: buildShareURL(r, null), withPhoto: false }; }
+    const url = res.url;
 
     const shareText = `Check out my recipe: ${r.title}`;
     if (navigator.share) {
@@ -540,7 +581,7 @@
     }
     try {
       await navigator.clipboard.writeText(url);
-      toast("Link copied! Paste it to a friend.");
+      toast(res.withPhoto ? "Link copied! Paste it to a friend." : "Link copied! (Photo was too large to include.)");
     } catch (e) {
       confirmDialog("Share this recipe", "Copy the link below and send it to a friend:", "Done", null, url);
     }

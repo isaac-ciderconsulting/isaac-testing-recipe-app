@@ -1,5 +1,5 @@
 /* Simple offline cache for Our Cookbook */
-const CACHE = "cookbook-v3";
+const CACHE = "cookbook-v4";
 const ASSETS = [
   "./",
   "./index.html",
