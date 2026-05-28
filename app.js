@@ -8,11 +8,33 @@
   "use strict";
 
   const STORE_KEY = "cookbook.recipes.v1";
-  const app    = document.getElementById("app");
+  const app     = document.getElementById("app");
   const fab     = document.getElementById("fab");
   const backBtn = document.getElementById("backBtn");
   const brand   = document.getElementById("brand");
   const toastEl = document.getElementById("toast");
+
+  /* ---------- inline SVG line icons (sleek, consistent) ---------- */
+  const PATHS = {
+    chef:   '<path d="M6 13.9A4 4 0 0 1 7.4 6 5 5 0 0 1 8.5 4.5a5 5 0 0 1 7 0A5 5 0 0 1 16.6 6 4 4 0 0 1 18 13.9V21H6z"/><path d="M6 17h12"/>',
+    clock:  '<circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 1.8"/>',
+    users:  '<path d="M16 20v-1a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v1"/><circle cx="9.5" cy="8" r="3.3"/><path d="M21 20v-1a4 4 0 0 0-3-3.8"/><path d="M15.5 4.7a3.3 3.3 0 0 1 0 6.4"/>',
+    list:   '<path d="M8 6h12M8 12h12M8 18h12"/><path d="M3.5 6h.01M3.5 12h.01M3.5 18h.01"/>',
+    steps:  '<rect x="5" y="4" width="14" height="17" rx="2.5"/><path d="M9 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1"/><path d="M9 11h6M9 15h4"/>',
+    share:  '<circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/><path d="M8.4 13.4l7.2 4.2M15.6 6.4l-7.2 4.2"/>',
+    edit:   '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>',
+    trash:  '<path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M18.5 6l-1 14a2 2 0 0 1-2 2H8.5a2 2 0 0 1-2-2L5.5 6"/><path d="M10 11v6M14 11v6"/>',
+    gift:   '<rect x="3.5" y="8.5" width="17" height="4" rx="1"/><path d="M12 8.5V21"/><path d="M19 12.5V19a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-6.5"/><path d="M12 8.5S11 4 8 4a2.2 2.2 0 0 0 0 4.5zM12 8.5S13 4 16 4a2.2 2.2 0 0 1 0 4.5z"/>',
+    check:  '<path d="M5 12.5l4.5 4.5L19 7"/>',
+    camera: '<path d="M3 8.5A2 2 0 0 1 5 6.5h1.6L8 4.5h8l1.4 2H19a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="3.4"/>',
+    close:  '<path d="M6 6l12 12M18 6L6 18"/>',
+    search: '<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.2-3.2"/>',
+    home:   '<path d="M3 11l9-7 9 7"/><path d="M5.5 9.5V20h13V9.5"/>',
+    save:   '<path d="M19 21l-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>',
+  };
+  function icon(name, size = 20, sw = 1.9) {
+    return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${PATHS[name] || ""}</svg>`;
+  }
 
   /* ---------- tiny helpers ---------- */
   const $  = (sel, el = document) => el.querySelector(sel);
@@ -107,9 +129,8 @@
     viewList();
   }
 
-  function setChrome({ back = false, title = "Our Cookbook", emoji = "🍳", showFab = false }) {
+  function setChrome({ back = false, showFab = false }) {
     backBtn.hidden = !back;
-    brand.innerHTML = `<span class="brand-emoji" aria-hidden="true">${emoji}</span><span class="brand-text">${esc(title)}</span>`;
     fab.classList.toggle("hidden", !showFab);
   }
 
@@ -117,24 +138,29 @@
      VIEW: list / home
      ================================================================= */
   function viewList() {
-    setChrome({ back: false, title: "Our Cookbook", emoji: "🍳", showFab: true });
+    setChrome({ back: false, showFab: true });
     const recipes = loadRecipes();
 
     if (recipes.length === 0) {
       app.innerHTML = "";
       app.appendChild(el(`
         <div class="view empty">
-          <div class="empty-emoji">🥘</div>
+          <div class="empty-art">${icon("chef", 46, 1.6)}</div>
           <h2>Welcome!</h2>
-          <p>This is your very own cookbook. Tap the big <b>New Recipe</b> button below to add your first one.</p>
+          <p>This is your own private cookbook. Tap <b>New Recipe</b> below to add your first one.</p>
         </div>`));
       return;
     }
 
     const wrap = el(`<div class="view"></div>`);
     wrap.appendChild(el(`
+      <div class="page-head">
+        <h2>Your Recipes</h2>
+        <p>${recipes.length} ${recipes.length === 1 ? "recipe" : "recipes"} saved</p>
+      </div>`));
+    wrap.appendChild(el(`
       <div class="search-wrap">
-        <svg viewBox="0 0 24 24" width="22" height="22"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M20 20l-3.2-3.2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <span class="s-icon">${icon("search", 20)}</span>
         <input class="search" id="search" type="text" placeholder="Search recipes…" autocomplete="off" />
       </div>`));
 
@@ -150,7 +176,7 @@
         (r.ingredients || []).join(" ").toLowerCase().includes(f));
       grid.innerHTML = "";
       if (shown.length === 0) {
-        grid.appendChild(el(`<p class="empty" style="grid-column:1/-1">No recipes match “${esc(filter)}”.</p>`));
+        grid.appendChild(el(`<p class="empty" style="grid-column:1/-1;padding:40px 0;color:var(--ink-soft)">No recipes match “${esc(filter)}”.</p>`));
         return;
       }
       shown.forEach((r) => grid.appendChild(card(r)));
@@ -164,8 +190,8 @@
       ? `<img class="card-photo" src="${r.photo}" alt="" loading="lazy" />`
       : `<div class="card-photo placeholder">🍽️</div>`;
     const meta = [];
-    if (r.time)     meta.push(`<span>⏱️ ${esc(r.time)}</span>`);
-    if (r.servings) meta.push(`<span>🍴 ${esc(r.servings)}</span>`);
+    if (r.time)     meta.push(`<span>${icon("clock", 15)} ${esc(r.time)}</span>`);
+    if (r.servings) meta.push(`<span>${icon("users", 15)} ${esc(r.servings)}</span>`);
     const c = el(`
       <button class="card" aria-label="Open ${esc(r.title)}">
         ${photo}
@@ -184,18 +210,18 @@
   function viewDetail(id) {
     const r = getRecipe(id);
     if (!r) { location.hash = ""; return; }
-    setChrome({ back: true, title: r.title, emoji: "📖", showFab: false });
+    setChrome({ back: true, showFab: false });
 
     const hero = r.photo
       ? `<img class="detail-hero" src="${r.photo}" alt="${esc(r.title)}" />`
       : `<div class="detail-hero placeholder">🍽️</div>`;
 
     const meta = [];
-    if (r.time)     meta.push(`<span class="chip">⏱️ ${esc(r.time)}</span>`);
-    if (r.servings) meta.push(`<span class="chip">🍴 Serves ${esc(r.servings)}</span>`);
+    if (r.time)     meta.push(`<span class="chip">${icon("clock", 16)} ${esc(r.time)}</span>`);
+    if (r.servings) meta.push(`<span class="chip">${icon("users", 16)} Serves ${esc(r.servings)}</span>`);
 
     const ingHtml = (r.ingredients || []).map((x, i) =>
-      `<li data-i="${i}"><span class="tick">✓</span><span class="txt">${esc(x)}</span></li>`).join("");
+      `<li data-i="${i}"><span class="tick">${icon("check", 14, 3)}</span><span class="txt">${esc(x)}</span></li>`).join("");
     const stepHtml = (r.steps || []).map((x) => `<li>${esc(x)}</li>`).join("");
 
     const view = el(`
@@ -204,22 +230,21 @@
         <h1 class="detail-title">${esc(r.title)}</h1>
         <div class="detail-meta">${meta.join("")}</div>
 
-        ${ingHtml ? `<div class="section"><h2>🧺 Ingredients</h2><ul class="ingredients">${ingHtml}</ul></div>` : ""}
-        ${stepHtml ? `<div class="section"><h2>👩‍🍳 How to make it</h2><ol class="steps">${stepHtml}</ol></div>` : ""}
+        ${ingHtml ? `<div class="section"><div class="section-label">${icon("list", 17)} Ingredients</div><ul class="ingredients">${ingHtml}</ul></div>` : ""}
+        ${stepHtml ? `<div class="section"><div class="section-label">${icon("steps", 17)} Method</div><ol class="steps">${stepHtml}</ol></div>` : ""}
 
         <div class="actions">
-          <button class="btn btn-primary" id="shareBtn">📤 Share</button>
-          <button class="btn btn-ghost" id="editBtn">✏️ Edit</button>
+          <button class="btn btn-primary" id="shareBtn">${icon("share")} Share</button>
+          <button class="btn btn-ghost" id="editBtn">${icon("edit")} Edit</button>
         </div>
         <div class="actions" style="margin-top:12px">
-          <button class="btn btn-danger btn-block" id="deleteBtn">🗑️ Delete recipe</button>
+          <button class="btn btn-danger btn-block" id="deleteBtn">${icon("trash")} Delete recipe</button>
         </div>
       </div>`);
 
     app.innerHTML = "";
     app.appendChild(view);
 
-    // tap ingredients to check them off (handy while cooking)
     view.querySelectorAll(".ingredients li").forEach((li) =>
       li.addEventListener("click", () => li.classList.toggle("checked")));
 
@@ -240,18 +265,19 @@
     const editing = !!id;
     const r = editing ? getRecipe(id) : null;
     if (editing && !r) { location.hash = ""; return; }
-    setChrome({ back: true, title: editing ? "Edit Recipe" : "New Recipe", emoji: "📝", showFab: false });
+    setChrome({ back: true, showFab: false });
 
     let photoData = r ? (r.photo || "") : "";
 
     const view = el(`
       <div class="view">
+        <div class="page-head"><h2>${editing ? "Edit Recipe" : "New Recipe"}</h2></div>
         <form class="form" id="recipeForm">
           <div class="field">
             <div class="photo-picker" id="photoPicker">
               <input type="file" id="photoInput" accept="image/*" />
               <div class="pp-inner" id="ppInner">
-                <div class="pp-emoji">📷</div>
+                <div class="pp-badge">${icon("camera", 26, 1.7)}</div>
                 <div>Tap to add a photo</div>
               </div>
             </div>
@@ -284,7 +310,7 @@
           </div>
 
           <div class="actions">
-            <button type="submit" class="btn btn-primary btn-block">💾 Save recipe</button>
+            <button type="submit" class="btn btn-primary btn-block">${icon("save")} Save recipe</button>
           </div>
         </form>
       </div>`);
@@ -300,7 +326,7 @@
       if (src) {
         ppInner.style.display = "none";
         picker.appendChild(el(`<img src="${src}" alt="preview" />`));
-        const clr = el(`<button type="button" class="photo-clear" aria-label="Remove photo">✕</button>`);
+        const clr = el(`<button type="button" class="photo-clear" aria-label="Remove photo">${icon("close", 18, 2.2)}</button>`);
         clr.addEventListener("click", (e) => { e.stopPropagation(); photoData = ""; showPhoto(""); });
         picker.appendChild(clr);
       } else {
@@ -343,35 +369,26 @@
      SHARING
      ================================================================= */
   function buildShareURL(r, withPhoto) {
-    const payload = {
-      t: r.title, tm: r.time, sv: r.servings,
-      i: r.ingredients, s: r.steps,
-    };
+    const payload = { t: r.title, tm: r.time, sv: r.servings, i: r.ingredients, s: r.steps };
     if (withPhoto && r.photo) payload.p = r.photo;
     const encoded = b64encode(JSON.stringify(payload));
     return location.origin + location.pathname + "#shared=" + encoded;
   }
 
   async function shareRecipe(r) {
-    // Include the photo only if the link stays a reasonable length,
-    // so it opens reliably in any messaging app.
     let url = buildShareURL(r, true);
     if (url.length > 7000) url = buildShareURL(r, false);
 
-    const shareText = `Check out my recipe: ${r.title} 🍳`;
+    const shareText = `Check out my recipe: ${r.title}`;
     if (navigator.share) {
-      try {
-        await navigator.share({ title: r.title, text: shareText, url });
-        return;
-      } catch (e) { if (e && e.name === "AbortError") return; }
+      try { await navigator.share({ title: r.title, text: shareText, url }); return; }
+      catch (e) { if (e && e.name === "AbortError") return; }
     }
-    // fallback: copy to clipboard
     try {
       await navigator.clipboard.writeText(url);
       toast("Link copied! Paste it to a friend.");
     } catch (e) {
-      confirmDialog("Share this recipe", "Copy the link below and send it to a friend:",
-        "Done", null, url);
+      confirmDialog("Share this recipe", "Copy the link below and send it to a friend:", "Done", null, url);
     }
   }
 
@@ -386,39 +403,36 @@
     const r = {
       id: "shared",
       title: payload.t || "Shared recipe",
-      time: payload.tm || "",
-      servings: payload.sv || "",
-      photo: payload.p || "",
-      ingredients: payload.i || [],
-      steps: payload.s || [],
+      time: payload.tm || "", servings: payload.sv || "",
+      photo: payload.p || "", ingredients: payload.i || [], steps: payload.s || [],
     };
-    setChrome({ back: true, title: r.title, emoji: "🎁", showFab: false });
+    setChrome({ back: true, showFab: false });
 
     const hero = r.photo
       ? `<img class="detail-hero" src="${r.photo}" alt="${esc(r.title)}" />`
       : `<div class="detail-hero placeholder">🍽️</div>`;
     const meta = [];
-    if (r.time)     meta.push(`<span class="chip">⏱️ ${esc(r.time)}</span>`);
-    if (r.servings) meta.push(`<span class="chip">🍴 Serves ${esc(r.servings)}</span>`);
-    const ingHtml  = r.ingredients.map((x) => `<li><span class="tick">✓</span><span class="txt">${esc(x)}</span></li>`).join("");
+    if (r.time)     meta.push(`<span class="chip">${icon("clock", 16)} ${esc(r.time)}</span>`);
+    if (r.servings) meta.push(`<span class="chip">${icon("users", 16)} Serves ${esc(r.servings)}</span>`);
+    const ingHtml  = r.ingredients.map((x) => `<li><span class="tick">${icon("check", 14, 3)}</span><span class="txt">${esc(x)}</span></li>`).join("");
     const stepHtml = r.steps.map((x) => `<li>${esc(x)}</li>`).join("");
 
     const view = el(`
       <div class="view">
         <div class="shared-banner">
-          <span class="sb-emoji">🎁</span>
+          <span class="sb-icon">${icon("gift", 24)}</span>
           <div><b>A friend shared this with you!</b><small>Save it to keep it in your own cookbook.</small></div>
         </div>
         ${hero}
         <h1 class="detail-title">${esc(r.title)}</h1>
         <div class="detail-meta">${meta.join("")}</div>
-        ${ingHtml ? `<div class="section"><h2>🧺 Ingredients</h2><ul class="ingredients">${ingHtml}</ul></div>` : ""}
-        ${stepHtml ? `<div class="section"><h2>👩‍🍳 How to make it</h2><ol class="steps">${stepHtml}</ol></div>` : ""}
+        ${ingHtml ? `<div class="section"><div class="section-label">${icon("list", 17)} Ingredients</div><ul class="ingredients">${ingHtml}</ul></div>` : ""}
+        ${stepHtml ? `<div class="section"><div class="section-label">${icon("steps", 17)} Method</div><ol class="steps">${stepHtml}</ol></div>` : ""}
         <div class="actions">
-          <button class="btn btn-primary btn-block" id="saveSharedBtn">💾 Save to my cookbook</button>
+          <button class="btn btn-primary btn-block" id="saveSharedBtn">${icon("save")} Save to my cookbook</button>
         </div>
         <div class="actions" style="margin-top:12px">
-          <button class="btn btn-ghost btn-block" id="homeBtn">🏠 Go to my cookbook</button>
+          <button class="btn btn-ghost btn-block" id="homeBtn">${icon("home")} Go to my cookbook</button>
         </div>
       </div>`);
 
@@ -437,7 +451,7 @@
   }
 
   /* =================================================================
-     Confirm dialog
+     Confirm / link dialog
      ================================================================= */
   function confirmDialog(title, body, okLabel, onOk, extraText) {
     const backdrop = el(`
@@ -466,6 +480,7 @@
   }
 
   /* ---------- wiring ---------- */
+  brand.innerHTML = `<span class="logo">${icon("chef", 22, 1.7)}</span><span class="brand-text">Our Cookbook</span>`;
   fab.addEventListener("click", () => { location.hash = "add"; });
   backBtn.addEventListener("click", () => {
     if (history.length > 1) history.back();
@@ -473,10 +488,8 @@
   });
   window.addEventListener("hashchange", render);
 
-  // first paint
   render();
 
-  // register service worker (offline support) — best effort
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () =>
       navigator.serviceWorker.register("sw.js").catch(() => {}));
