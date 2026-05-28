@@ -1,10 +1,11 @@
 /* Simple offline cache for Our Cookbook */
-const CACHE = "cookbook-v2";
+const CACHE = "cookbook-v3";
 const ASSETS = [
   "./",
   "./index.html",
   "./styles.css",
   "./app.js",
+  "./config.js",
   "./manifest.json",
   "./icon.svg"
 ];

@@ -8,10 +8,19 @@
   "use strict";
 
   const STORE_KEY = "cookbook.recipes.v1";
+  const AUTH_KEY  = "cookbook.auth.v1";
+  const SESSION_DAYS = 30; // stay signed in for a month before asking again
+
+  const CFG = window.COOKBOOK_CONFIG || {};
+  const CLIENT_ID = (CFG.googleClientId || "").trim();
+  const ALLOWED = (CFG.allowedEmails || []).map((e) => String(e).trim().toLowerCase()).filter(Boolean);
+  const SHARE_NEEDS_LOGIN = !!CFG.shareRequiresLogin;
+
   const app     = document.getElementById("app");
   const fab     = document.getElementById("fab");
   const backBtn = document.getElementById("backBtn");
   const brand   = document.getElementById("brand");
+  const authBtn = document.getElementById("authBtn");
   const toastEl = document.getElementById("toast");
 
   /* ---------- inline SVG line icons (sleek, consistent) ---------- */
@@ -106,6 +115,82 @@
   }
 
   /* =================================================================
+     AUTH (Google Sign-In)
+     Client-side gate. Soft access control, not server-enforced.
+     ================================================================= */
+  function getSession() {
+    try {
+      const s = JSON.parse(localStorage.getItem(AUTH_KEY));
+      if (s && s.expiresAt && s.expiresAt > Date.now()) return s;
+    } catch (e) {}
+    return null;
+  }
+  function setSession(s) { localStorage.setItem(AUTH_KEY, JSON.stringify(s)); }
+  function clearSession() { localStorage.removeItem(AUTH_KEY); }
+
+  function decodeJwt(token) {
+    const part = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+    return JSON.parse(decodeURIComponent(escape(atob(part))));
+  }
+  function emailAllowed(email) {
+    if (ALLOWED.length === 0) return true;
+    return ALLOWED.includes(String(email || "").toLowerCase());
+  }
+
+  // wait for Google's library to be ready
+  function whenGisReady(cb, tries = 0) {
+    if (window.google && google.accounts && google.accounts.id) return cb();
+    if (tries > 100) return; // ~10s
+    setTimeout(() => whenGisReady(cb, tries + 1), 100);
+  }
+
+  function handleCredential(resp) {
+    let profile;
+    try { profile = decodeJwt(resp.credential); }
+    catch (e) { toast("Sign-in failed. Please try again."); return; }
+
+    if (!emailAllowed(profile.email)) {
+      app.innerHTML = "";
+      app.appendChild(el(`
+        <div class="view login">
+          <div class="login-art">${icon("chef", 44, 1.6)}</div>
+          <h2>This cookbook is private</h2>
+          <p>The account <b>${esc(profile.email)}</b> isn't on the guest list. Ask the owner to add you, then try again.</p>
+          <button class="btn btn-ghost" id="tryAgain">Use a different account</button>
+        </div>`));
+      $("#tryAgain").addEventListener("click", () => { try { google.accounts.id.disableAutoSelect(); } catch (e) {} render(); });
+      return;
+    }
+
+    setSession({
+      email: profile.email,
+      name: profile.name || profile.email,
+      picture: profile.picture || "",
+      expiresAt: Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000,
+    });
+    updateAuthButton();
+    location.hash = "";
+    render();
+  }
+
+  function signOut() {
+    try { google.accounts.id.disableAutoSelect(); } catch (e) {}
+    clearSession();
+    updateAuthButton();
+    location.hash = "";
+    render();
+  }
+
+  function updateAuthButton() {
+    const s = getSession();
+    if (!s) { authBtn.hidden = true; authBtn.innerHTML = ""; return; }
+    authBtn.hidden = false;
+    authBtn.innerHTML = s.picture
+      ? `<img src="${s.picture}" alt="" referrerpolicy="no-referrer" />`
+      : esc((s.name || s.email || "?").trim().charAt(0).toUpperCase());
+  }
+
+  /* =================================================================
      ROUTER
      ================================================================= */
   function parseHash() {
@@ -122,11 +207,80 @@
   function render() {
     const r = parseHash();
     window.scrollTo(0, 0);
+
+    // Shared links may be viewable without logging in (configurable).
+    if (r.name === "shared" && !SHARE_NEEDS_LOGIN) { updateAuthButton(); return viewShared(r.data); }
+
+    // Everything else sits behind the login gate.
+    if (!getSession()) { return viewLogin(); }
+    updateAuthButton();
+
     if (r.name === "list")   return viewList();
     if (r.name === "detail") return viewDetail(r.id);
     if (r.name === "form")   return viewForm(r.id);
     if (r.name === "shared") return viewShared(r.data);
     viewList();
+  }
+
+  /* =================================================================
+     VIEW: login gate
+     ================================================================= */
+  function viewLogin() {
+    setChrome({ back: false, showFab: false });
+    authBtn.hidden = true;
+
+    // Not configured yet — show friendly setup instructions instead of a broken button.
+    if (!CLIENT_ID) {
+      app.innerHTML = "";
+      app.appendChild(el(`
+        <div class="view login">
+          <div class="login-art">${icon("chef", 44, 1.6)}</div>
+          <h2>Almost there!</h2>
+          <p>Sign-in needs a free Google Client ID. Add it once and you're done.</p>
+          <div class="setup-card">
+            <h3>How to turn on Google sign-in</h3>
+            <ol>
+              <li>Go to <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">Google Cloud → Credentials</a> and create an <b>OAuth client ID</b> (type: <b>Web application</b>).</li>
+              <li>Under <b>Authorized JavaScript origins</b>, add this site's address (e.g. <code>${esc(location.origin)}</code>).</li>
+              <li>Copy the <b>Client ID</b> it gives you.</li>
+              <li>Paste it into the <code>config.js</code> file, in the <code>googleClientId</code> line.</li>
+            </ol>
+          </div>
+        </div>`));
+      return;
+    }
+
+    app.innerHTML = "";
+    app.appendChild(el(`
+      <div class="view login">
+        <div class="login-art">${icon("chef", 44, 1.6)}</div>
+        <h2>Our Cookbook</h2>
+        <p>Please sign in with Google to open your cookbook.</p>
+        <div class="gsi-host" id="gsiHost"></div>
+        <div class="login-note">We only use this to know it's you. Your recipes stay private on your device.</div>
+      </div>`));
+
+    whenGisReady(() => {
+      try {
+        google.accounts.id.initialize({
+          client_id: CLIENT_ID,
+          callback: handleCredential,
+          auto_select: true,
+          cancel_on_tap_outside: false,
+        });
+        const host = document.getElementById("gsiHost");
+        if (host) {
+          google.accounts.id.renderButton(host, {
+            type: "standard", theme: "filled_black", size: "large",
+            shape: "pill", text: "signin_with", logo_alignment: "center",
+          });
+        }
+        google.accounts.id.prompt(); // also offer One Tap for returning users
+      } catch (e) {
+        const host = document.getElementById("gsiHost");
+        if (host) host.innerHTML = `<p style="color:var(--ink-soft)">Couldn't load Google sign-in. Check that this site's address is added to your Google Client ID's allowed origins.</p>`;
+      }
+    });
   }
 
   function setChrome({ back = false, showFab = false }) {
@@ -486,8 +640,13 @@
     if (history.length > 1) history.back();
     else location.hash = "";
   });
+  authBtn.addEventListener("click", () => {
+    const s = getSession();
+    confirmDialog("Sign out?", s ? `You're signed in as ${s.name || s.email}.` : "", "Sign out", signOut);
+  });
   window.addEventListener("hashchange", render);
 
+  updateAuthButton();
   render();
 
   if ("serviceWorker" in navigator) {
