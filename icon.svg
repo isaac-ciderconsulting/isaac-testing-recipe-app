@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="112" fill="#e8744c"/>
+  <circle cx="256" cy="272" r="150" fill="#fdf6ef"/>
+  <circle cx="256" cy="272" r="150" fill="none" stroke="#d35f38" stroke-width="14"/>
+  <!-- fork -->
+  <g fill="#d35f38">
+    <rect x="168" y="180" width="14" height="184" rx="7"/>
+    <rect x="150" y="172" width="12" height="70" rx="6"/>
+    <rect x="170" y="172" width="12" height="70" rx="6"/>
+    <rect x="190" y="172" width="12" height="70" rx="6"/>
+    <rect x="150" y="232" width="52" height="14" rx="7"/>
+  </g>
+  <!-- spoon -->
+  <g fill="#d35f38">
+    <rect x="330" y="240" width="14" height="124" rx="7"/>
+    <ellipse cx="337" cy="200" rx="24" ry="34" fill="none" stroke="#d35f38" stroke-width="14"/>
+  </g>
+</svg>
