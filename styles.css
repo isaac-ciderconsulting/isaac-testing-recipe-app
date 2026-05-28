@@ -63,6 +63,7 @@ img { display: block; max-width: 100%; }
   box-shadow: var(--shadow-sm);
 }
 .icon-btn:active { transform: scale(0.92); }
+.icon-btn[hidden] { display: none; }
 
 /* ===================== Layout ===================== */
 .app {
