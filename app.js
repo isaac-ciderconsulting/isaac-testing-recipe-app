@@ -254,8 +254,8 @@
     app.appendChild(el(`
       <div class="view login">
         <div class="login-art">${icon("chef", 44, 1.6)}</div>
-        <h2>Our Cookbook</h2>
-        <p>Please sign in with Google to open your cookbook.</p>
+        <h2>Isaac's Life</h2>
+        <p>Please sign in with Google to open the app.</p>
         <div class="gsi-host" id="gsiHost"></div>
         <div class="login-note">We only use this to know it's you. Your recipes stay private on your device.</div>
       </div>`));
@@ -675,7 +675,7 @@
   }
 
   /* ---------- wiring ---------- */
-  brand.innerHTML = `<span class="logo">${icon("chef", 22, 1.7)}</span><span class="brand-text">Our Cookbook</span>`;
+  brand.innerHTML = `<span class="logo">${icon("chef", 22, 1.7)}</span><span class="brand-text">Isaac's Life</span>`;
   fab.addEventListener("click", () => { location.hash = "add"; });
   backBtn.addEventListener("click", () => {
     if (history.length > 1) history.back();

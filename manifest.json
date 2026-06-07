@@ -1,7 +1,7 @@
 {
-  "name": "Our Cookbook",
-  "short_name": "Cookbook",
-  "description": "A simple, beautiful place for your favorite recipes.",
+  "name": "Isaac's Life",
+  "short_name": "Isaac's Life",
+  "description": "Isaac's personal life app.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
